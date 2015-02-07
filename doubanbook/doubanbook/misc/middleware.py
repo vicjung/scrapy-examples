@@ -1,8 +1,15 @@
 from scrapy import log
+from scrapy.dupefilter import RFPDupeFilter
+from scrapy.utils.request import request_fingerprint
 from proxy import PROXIES
 from agents import AGENTS
 
+import os
 import random
+
+
+
+
 
 
 class CustomHttpProxyMiddleware(object):
@@ -31,3 +38,19 @@ class CustomUserAgentMiddleware(object):
     def process_request(self, request, spider):
         agent = random.choice(AGENTS)
         request.headers['User-Agent'] = agent
+
+
+class CustomSqliteDupeFilter(RFPDupeFilter):
+"""A dupe filter that considers specific ids in the url"""
+
+    def __getid(self, url):
+        mm = url.split("&refer")[0] #or something like that
+        return mm
+
+    def request_seen(self, request):
+        fp = self.__getid(request.url)
+        if fp in self.fingerprints:
+            return True
+        self.fingerprints.add(fp)
+        if self.file:
+            self.file.write(fp + os.linesep)
